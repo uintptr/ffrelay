@@ -2,6 +2,14 @@
 name = "ffrelay"
 version.workspace = true
 edition.workspace = true
+description = "Command-line interface for Firefox Relay email forwarding service"
+documentation = "https://docs.rs/ffrelay"
+readme = "../README.md"
+homepage = "https://github.com/uintptr/ffrelay"
+repository = "https://github.com/uintptr/ffrelay"
+license = "MIT OR Apache-2.0"
+keywords = ["cli", "email", "firefox", "privacy", "relay"]
+categories = ["command-line-utilities", "email"]
 
 [dependencies]
 anyhow.workspace = true
