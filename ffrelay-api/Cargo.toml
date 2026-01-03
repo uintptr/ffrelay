@@ -2,6 +2,14 @@
 name = "ffrelay-api"
 version.workspace = true
 edition.workspace = true
+description = "Rust API client library for Firefox Relay email forwarding service"
+documentation = "https://docs.rs/ffrelay-api"
+readme = "README.md"
+homepage = "https://github.com/uintptr/ffrelay"
+repository = "https://github.com/uintptr/ffrelay"
+license = "MIT OR Apache-2.0"
+keywords = ["api", "email", "firefox", "privacy", "relay"]
+categories = ["api-bindings", "email", "web-programming"]
 
 [dependencies]
 bon.workspace = true

@@ -1,3 +1,5 @@
+//! Firefox Relay API client implementation.
+
 use log::info;
 use reqwest::Client;
 
@@ -6,18 +8,46 @@ use crate::{
     types::{FirefoxEmailRelay, FirefoxEmailRelayRequest, FirefoxRelayProfile},
 };
 
+/// The main API client for interacting with Firefox Relay.
+///
+/// This struct provides methods to create, list, and delete email relays,
+/// as well as retrieve profile information.
+///
+/// # Example
+///
+/// ```no_run
+/// use ffrelay_api::api::FFRelayApi;
+///
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// let api = FFRelayApi::new("your-api-token");
+/// let relays = api.list().await?;
+/// # Ok(())
+/// # }
+/// ```
 pub struct FFRelayApi {
     client: Client,
     token: String,
 }
 
 const FFRELAY_API_ENDPOINT: &str = "https://relay.firefox.com/api";
-//const FFRELAY_API_ENDPOINT: &str = "http://localhost:1234";
 
 const FFRELAY_EMAIL_ENDPOINT: &str = "v1/relayaddresses";
 const FFRELAY_EMAIL_DOMAIN_ENDPOINT: &str = "v1/domainaddresses";
 
 impl FFRelayApi {
+    /// Creates a new Firefox Relay API client.
+    ///
+    /// # Arguments
+    ///
+    /// * `token` - Your Firefox Relay API token
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use ffrelay_api::api::FFRelayApi;
+    ///
+    /// let api = FFRelayApi::new("your-api-token");
+    /// ```
     pub fn new<T>(token: T) -> Self
     where
         T: Into<String>,
@@ -118,6 +148,30 @@ impl FFRelayApi {
     // PUBLIC
     ////////////////////////////////////////////////////////////////////////////
 
+    /// Retrieves all Firefox Relay profiles associated with the API token.
+    ///
+    /// Returns detailed information about your Firefox Relay account including
+    /// subscription status, usage statistics, and settings.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the HTTP request fails or the response cannot be parsed.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ffrelay_api::api::FFRelayApi;
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let api = FFRelayApi::new("your-api-token");
+    /// let profiles = api.profiles().await?;
+    /// for profile in profiles {
+    ///     println!("Total masks: {}", profile.total_masks);
+    ///     println!("Has premium: {}", profile.has_premium);
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn profiles(&self) -> Result<Vec<FirefoxRelayProfile>> {
         let url = "https://relay.firefox.com/api/v1/profiles/";
         let token = format!("Token {}", &self.token);
@@ -139,6 +193,49 @@ impl FFRelayApi {
         Ok(profiles)
     }
 
+    /// Creates a new email relay (alias).
+    ///
+    /// Creates either a random relay (ending in @mozmail.com) or a custom domain
+    /// relay if you have a premium subscription and provide an address.
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - Configuration for the new relay including description and optional custom address
+    ///
+    /// # Returns
+    ///
+    /// The full email address of the newly created relay.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the HTTP request fails, the response cannot be parsed,
+    /// or you've reached your relay limit.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ffrelay_api::api::FFRelayApi;
+    /// use ffrelay_api::types::FirefoxEmailRelayRequest;
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let api = FFRelayApi::new("your-api-token");
+    ///
+    /// // Create a random relay
+    /// let request = FirefoxEmailRelayRequest::builder()
+    ///     .description("For shopping sites".to_string())
+    ///     .build();
+    /// let email = api.create(request).await?;
+    /// println!("Created: {}", email);
+    ///
+    /// // Create a custom domain relay (requires premium)
+    /// let request = FirefoxEmailRelayRequest::builder()
+    ///     .description("Newsletter".to_string())
+    ///     .address("newsletter".to_string())
+    ///     .build();
+    /// let email = api.create(request).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn create(&self, request: FirefoxEmailRelayRequest) -> Result<String> {
         let endpoint = if request.address.is_some() {
             FFRELAY_EMAIL_DOMAIN_ENDPOINT
@@ -149,6 +246,38 @@ impl FFRelayApi {
         self.create_with_endpoint(endpoint, request).await
     }
 
+    /// Lists all email relays (both random and domain relays).
+    ///
+    /// Retrieves all active email relays associated with your account,
+    /// including both standard relays (@mozmail.com) and custom domain relays.
+    ///
+    /// # Returns
+    ///
+    /// A vector of all email relays with their statistics and metadata.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error only if both standard and domain relay requests fail.
+    /// If one succeeds, returns the available relays.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ffrelay_api::api::FFRelayApi;
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let api = FFRelayApi::new("your-api-token");
+    /// let relays = api.list().await?;
+    /// for relay in relays {
+    ///     println!("{}: {} (forwarded: {})",
+    ///         relay.id,
+    ///         relay.full_address,
+    ///         relay.num_forwarded
+    ///     );
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn list(&self) -> Result<Vec<FirefoxEmailRelay>> {
         let mut relays = vec![];
 
@@ -163,6 +292,36 @@ impl FFRelayApi {
         Ok(relays)
     }
 
+    /// Deletes an email relay by its ID.
+    ///
+    /// Permanently removes the specified email relay. The relay will stop
+    /// forwarding emails immediately. This action cannot be undone.
+    ///
+    /// # Arguments
+    ///
+    /// * `email_id` - The unique ID of the relay to delete
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The relay ID is not found
+    /// - The HTTP request fails
+    /// - The deletion request is rejected by the server
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ffrelay_api::api::FFRelayApi;
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let api = FFRelayApi::new("your-api-token");
+    ///
+    /// // Delete a relay by ID
+    /// api.delete(12345678).await?;
+    /// println!("Relay deleted successfully");
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn delete(&self, email_id: u64) -> Result<()> {
         let relay = self.find_email_relay(email_id).await?;
 
