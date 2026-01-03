@@ -1,0 +1,4 @@
+/.zed
+/target
+/ok
+Cargo.lock
