@@ -61,7 +61,7 @@ impl FFRelayApi {
             .json::<serde_json::Value>()
             .await?;
 
-        dbg!(&resp_dict);
+        //dbg!(&resp_dict);
 
         let res: FirefoxEmailRelayResponse = serde_json::from_value(resp_dict)?;
 
