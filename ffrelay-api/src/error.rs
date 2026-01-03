@@ -5,6 +5,10 @@ pub type Result<T> = core::result::Result<T, Error>;
 pub enum Error {
     #[error("Http Error {http_status}")]
     RequestFailure { http_status: u16 },
+    #[error("Email Id not found")]
+    RelayIdNotFound,
+    #[error("Deletion Failure. Status code: {http_status}")]
+    EmailDeletionFailure { http_status: u16 },
     //
     // 3rd party
     //

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use tabled::Tabled;
 
 #[derive(Deserialize, Tabled)]
-pub struct FirefoxEmailRelayResponse {
+pub struct FirefoxEmailRelay {
     pub id: u64,
     pub full_address: String,
     pub description: String,
@@ -13,11 +13,22 @@ pub struct FirefoxEmailRelayResponse {
     pub num_spam: u64,
 }
 
+impl FirefoxEmailRelay {
+    pub fn is_domain(&self) -> bool {
+        if let Some((_, dom)) = self.full_address.split_once('@') {
+            !dom.eq("mozmail.com")
+        } else {
+            false
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Builder)]
 pub struct FirefoxEmailRelayRequest {
     description: String,
     #[builder(default = true)]
     enabled: bool,
+    pub address: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Tabled)]

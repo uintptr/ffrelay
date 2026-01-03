@@ -14,12 +14,16 @@ pub struct CreateArgs {
     /// Email Description Context
     #[arg(short, long)]
     pub description: String,
+
+    /// Address to create a address@yourdomain.mozmail.com
+    #[arg(short, long)]
+    pub address: Option<String>,
 }
 
 #[derive(Args)]
 pub struct DeleteArgs {
     /// Email id
-    pub email_id: u32,
+    pub email_id: Vec<u64>,
 }
 
 #[derive(Subcommand)]
@@ -76,8 +80,17 @@ async fn command_list(api: FFRelayApi) -> Result<()> {
     Ok(())
 }
 
-async fn command_delete(api: FFRelayApi, email_id: u32) -> Result<()> {
-    api.delete(email_id).await?;
+async fn command_delete(api: FFRelayApi, email_ids: Vec<u64>) -> Result<()> {
+    for id in email_ids {
+        match api.delete(id).await {
+            Ok(_) => {
+                println!("Deleted {id}");
+            }
+            Err(e) => {
+                println!("Unable to delete {id} => {e}");
+            }
+        }
+    }
 
     Ok(())
 }
@@ -85,6 +98,7 @@ async fn command_delete(api: FFRelayApi, email_id: u32) -> Result<()> {
 async fn command_create(api: FFRelayApi, args: CreateArgs) -> Result<()> {
     let req = FirefoxEmailRelayRequest::builder()
         .description(args.description)
+        .maybe_address(args.address)
         .build();
 
     let email = api.create(req).await?;
