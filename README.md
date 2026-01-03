@@ -1,7 +1,7 @@
 # install
 
 ```
-cargo install --git https://github.com/uintptr/ffrelay
+cargo install ffrelay
 ```
 
 # Commands
