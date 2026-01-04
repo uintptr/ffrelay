@@ -27,6 +27,12 @@ pub enum Error {
     #[error("Deletion Failure. Status code: {http_status}")]
     EmailDeletionFailure { http_status: u16 },
 
+    /// Failed to update the email relay.
+    ///
+    /// The server rejected the deletion request. Check the status code for details.
+    #[error("Update Failure. Status code: {http_status}")]
+    EmailUpdateFailure { http_status: u16 },
+
     //
     // 3rd party errors
     //

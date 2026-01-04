@@ -60,6 +60,50 @@ impl FFRelayApi {
         }
     }
 
+    /// Enables or disables an email relay via the specified API endpoint.
+    ///
+    /// This is a private helper function used by `enable()` and `disable()`.
+    ///
+    /// # Arguments
+    ///
+    /// * `endpoint` - The API endpoint to use (either standard or domain relays)
+    /// * `email_id` - The unique ID of the relay to toggle
+    /// * `enabled` - Whether to enable (`true`) or disable (`false`) the relay
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the HTTP request fails or is rejected by the server.
+    async fn toggle_with_endpoint(
+        &self,
+        endpoint: &str,
+        email_id: u64,
+        enabled: bool,
+    ) -> Result<()> {
+        let token = format!("Token {}", &self.token);
+        let url = format!("{FFRELAY_API_ENDPOINT}/{endpoint}/{email_id}/");
+
+        info!("url: {url}");
+
+        let request = FirefoxEmailRelayRequest::builder().enabled(enabled).build();
+
+        let ret = self
+            .client
+            .patch(url)
+            .header("content-type", "application/json")
+            .header("authorization", token)
+            .json(&request)
+            .send()
+            .await?;
+
+        if ret.status().is_success() {
+            Ok(())
+        } else {
+            Err(Error::EmailUpdateFailure {
+                http_status: ret.status().as_u16(),
+            })
+        }
+    }
+
     async fn create_with_endpoint(
         &self,
         endpoint: &str,
@@ -332,5 +376,89 @@ impl FFRelayApi {
         };
 
         self.delete_with_endpoint(endpoint, email_id).await
+    }
+
+    /// Disables an email relay by its ID.
+    ///
+    /// When a relay is disabled, it will stop forwarding emails but remain in your
+    /// account. You can re-enable it later without losing its statistics or configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `email_id` - The unique ID of the relay to disable
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The relay ID is not found
+    /// - The HTTP request fails
+    /// - The update request is rejected by the server
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ffrelay_api::api::FFRelayApi;
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let api = FFRelayApi::new("your-api-token");
+    ///
+    /// // Disable a relay temporarily
+    /// api.disable(12345678).await?;
+    /// println!("Relay disabled successfully");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn disable(&self, email_id: u64) -> Result<()> {
+        let relay = self.find_email_relay(email_id).await?;
+
+        let endpoint = if relay.is_domain() {
+            FFRELAY_EMAIL_DOMAIN_ENDPOINT
+        } else {
+            FFRELAY_EMAIL_ENDPOINT
+        };
+
+        self.toggle_with_endpoint(endpoint, email_id, false).await
+    }
+
+    /// Enables an email relay by its ID.
+    ///
+    /// When a relay is enabled, it will start forwarding emails to your real email address.
+    /// This is useful for re-enabling a previously disabled relay.
+    ///
+    /// # Arguments
+    ///
+    /// * `email_id` - The unique ID of the relay to enable
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The relay ID is not found
+    /// - The HTTP request fails
+    /// - The update request is rejected by the server
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ffrelay_api::api::FFRelayApi;
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let api = FFRelayApi::new("your-api-token");
+    ///
+    /// // Enable a previously disabled relay
+    /// api.enable(12345678).await?;
+    /// println!("Relay enabled successfully");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn enable(&self, email_id: u64) -> Result<()> {
+        let relay = self.find_email_relay(email_id).await?;
+
+        let endpoint = if relay.is_domain() {
+            FFRELAY_EMAIL_DOMAIN_ENDPOINT
+        } else {
+            FFRELAY_EMAIL_ENDPOINT
+        };
+
+        self.toggle_with_endpoint(endpoint, email_id, true).await
     }
 }

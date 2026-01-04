@@ -21,9 +21,9 @@ pub struct CreateArgs {
 }
 
 #[derive(Args)]
-pub struct DeleteArgs {
+pub struct EmailIdArgs {
     /// Email id
-    pub email_id: Vec<u64>,
+    pub email_ids: Vec<u64>,
 }
 
 #[derive(Subcommand)]
@@ -37,10 +37,16 @@ pub enum Commands {
 
     #[command(visible_alias = "rm")]
     /// Delete a relay email
-    DeleteEmail(DeleteArgs),
+    DeleteEmail(EmailIdArgs),
 
     /// Profiles
     Profiles,
+
+    /// Enable
+    Enable(EmailIdArgs),
+
+    /// Enable
+    Disable(EmailIdArgs),
 }
 
 #[derive(Parser)]
@@ -57,6 +63,36 @@ pub struct UserArgs {
     /// Command
     #[command(subcommand)]
     pub command: Commands,
+}
+
+async fn command_disable(api: FFRelayApi, email_ids: Vec<u64>) -> Result<()> {
+    for id in email_ids {
+        match api.disable(id).await {
+            Ok(_) => {
+                println!("Disabled {id}");
+            }
+            Err(e) => {
+                println!("Unable to disable {id} => {e}");
+            }
+        }
+    }
+
+    Ok(())
+}
+
+async fn command_enable(api: FFRelayApi, email_ids: Vec<u64>) -> Result<()> {
+    for id in email_ids {
+        match api.enable(id).await {
+            Ok(_) => {
+                println!("Enabled {id}");
+            }
+            Err(e) => {
+                println!("Unable to enable {id} => {e}");
+            }
+        }
+    }
+
+    Ok(())
 }
 
 async fn command_profiles(api: FFRelayApi) -> Result<()> {
@@ -136,8 +172,10 @@ async fn main() -> Result<()> {
 
     match args.command {
         Commands::ListEmail => command_list(api).await,
-        Commands::DeleteEmail(a) => command_delete(api, a.email_id).await,
+        Commands::DeleteEmail(a) => command_delete(api, a.email_ids).await,
         Commands::CreateEmail(a) => command_create(api, a).await,
         Commands::Profiles => command_profiles(api).await,
+        Commands::Enable(a) => command_enable(api, a.email_ids).await,
+        Commands::Disable(a) => command_disable(api, a.email_ids).await,
     }
 }

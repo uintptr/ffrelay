@@ -16,6 +16,9 @@ pub struct FirefoxEmailRelay {
     /// The full email address of the relay (e.g., "abc123@mozmail.com").
     pub full_address: String,
 
+    /// Whether the relay is enabled or not
+    pub enabled: bool,
+
     /// User-provided description for this relay.
     pub description: String,
 
@@ -87,7 +90,8 @@ impl FirefoxEmailRelay {
 #[derive(Debug, Serialize, Builder)]
 pub struct FirefoxEmailRelayRequest {
     /// Description for the relay to help you remember its purpose.
-    description: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    description: Option<String>,
 
     /// Whether the relay should be enabled immediately (defaults to `true`).
     #[builder(default = true)]
@@ -95,6 +99,7 @@ pub struct FirefoxEmailRelayRequest {
 
     /// Optional custom address for domain relays (requires premium subscription).
     /// If `None`, a random address will be generated.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub address: Option<String>,
 }
 
