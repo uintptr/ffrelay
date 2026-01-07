@@ -15,7 +15,7 @@ categories = ["command-line-utilities", "email"]
 anyhow.workspace = true
 clap.workspace = true
 dirs.workspace = true
-ffrelay-api = { path = "../ffrelay-api", version = "0.4" }
+ffrelay-api = { path = "../ffrelay-api", version = "0.0" }
 log.workspace = true
 rstaples.workspace = true
 serde.workspace = true
