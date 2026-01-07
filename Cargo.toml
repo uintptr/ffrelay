@@ -6,7 +6,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.0.3"
+version = "0.0.4"
 edition = "2024"
 
 [workspace.dependencies]
@@ -21,7 +21,7 @@ reqwest = { version = "0.13", default-features = false, features = [
   "rustls"
 ] }
 rstaples = "0.3"
-serde = "1.0"
+serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tabled = "0.20"
 thiserror = "2.0"
